@@ -172,3 +172,7 @@ window.send.onclick = async () => {
       appendOutput(`Error sending message - ${err.message}`)
     })
 }
+
+// connect to relay
+const relay = '/dns4/194-11-226-35.k51qzi5uqu5dhlxz4gos5ph4wivip9rgsg6tywpypccb403b0st1nvzhw8as9q.libp2p.direct/tcp/4001/tls/ws/p2p/12D3KooWDfnXqdZfsoqKbcYEDKRttt3adumB5m6tw8YghPwMAz8V'
+await node.dial(multiaddr(relay))
