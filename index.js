@@ -11,7 +11,10 @@ import { byteStream } from 'it-byte-stream'
 import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 
-document.title = 'v6'
+document.title = 'v7'
+
+// only use webrtc over wss addresses
+const isValidAddress = (address) => address.includes('/webrtc/') && address.includes('/ws/') && address.includes('/dns')
 
 const WEBRTC_CODE = protocols('webrtc').code
 
@@ -90,7 +93,7 @@ node.addEventListener('self:peer:update', (event) => {
   // Update multiaddrs list, only show WebRTC addresses with websocket relays
   const multiaddrs = node.getMultiaddrs()
     .map(ma => ma.toString())
-    .filter(ma => ma.includes('/webrtc/') && ma.includes('/ws/'))
+    .filter(isValidAddress)
     .map((ma) => {
       const el = document.createElement('li')
       el.textContent = ma
@@ -203,7 +206,7 @@ const doPeerDiscovery = async () => {
         continue
       }
       for (const address of provider.Addrs) {
-        if (address.includes('/webrtc/') && address.includes('/ws/')) {
+        if (isValidAddress(address)) {
           addresses.push(`${address}/p2p/${provider.ID}`)
         }
       }
@@ -220,7 +223,7 @@ const doPeerDiscovery = async () => {
   try {
     const myAddresses = node.getMultiaddrs()
       .map(ma => ma.toString())
-      .filter(ma => ma.includes('/webrtc/') && ma.includes('/ws/'))
+      .filter(isValidAddress)
     if (!myAddresses.length) {
       throw Error(`I don't have any addresses`)
     }
