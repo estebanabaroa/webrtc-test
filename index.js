@@ -11,23 +11,17 @@ import { byteStream } from 'it-byte-stream'
 import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 
-document.title = 'v9'
+document.title = 'v10'
 
 // only use webrtc over wss addresses
 const isValidAddress = (address) => address.includes('/webrtc/') && address.includes('/ws/') && address.includes('/dns')
 
-const WEBRTC_CODE = protocols('webrtc').code
-
 const output = document.getElementById('output')
-const sendSection = document.getElementById('send-section')
 const appendOutput = (line) => {
   const div = document.createElement('div')
   div.appendChild(document.createTextNode(line))
   output.append(div)
 }
-const CHAT_PROTOCOL = '/libp2p/examples/chat/1.0.0'
-let ma
-let chatStream
 
 const node = await createLibp2p({
   addresses: {
@@ -64,14 +58,8 @@ const node = await createLibp2p({
 await node.start()
 
 function updateConnList () {
-  // Update connections list
   const connListEls = node.getConnections()
     .map((connection) => {
-      if (connection.remoteAddr.protoCodes().includes(WEBRTC_CODE)) {
-        ma = connection.remoteAddr
-        sendSection.style.display = 'block'
-      }
-
       const el = document.createElement('li')
       el.textContent = connection.remoteAddr.toString()
       return el
@@ -87,7 +75,7 @@ node.addEventListener('connection:close', (event) => {
 })
 
 node.addEventListener('self:peer:update', (event) => {
-  // debug addresses
+  // debug own addresses
   console.log(node.getMultiaddrs().map(ma => ma.toString()))
 
   // Update multiaddrs list, only show WebRTC addresses with websocket relays
@@ -103,84 +91,6 @@ node.addEventListener('self:peer:update', (event) => {
 
   doPeerDiscovery()
 })
-
-node.handle(CHAT_PROTOCOL, async ({ stream }) => {
-  chatStream = byteStream(stream)
-
-  while (true) {
-    const buf = await chatStream.read()
-    appendOutput(`Received message '${toString(buf.subarray())}'`)
-  }
-})
-
-const isWebrtc = (ma) => {
-  return ma.protoCodes().includes(WEBRTC_CODE)
-}
-
-window.connect.onclick = async () => {
-  ma = multiaddr(window.peer.value)
-  appendOutput(`Dialing '${ma}'`)
-
-  const signal = AbortSignal.timeout(5000)
-
-  try {
-    if (isWebrtc(ma)) {
-      const rtt = await node.services.ping.ping(ma, {
-        signal
-      })
-      appendOutput(`Connected to '${ma}'`)
-      appendOutput(`RTT to ${ma.getPeerId()} was ${rtt}ms`)
-    } else {
-      await node.dial(ma, {
-        signal
-      })
-      appendOutput('Connected to relay')
-    }
-  } catch (err) {
-    if (signal.aborted) {
-      appendOutput(`Timed out connecting to '${ma}'`)
-    } else {
-      appendOutput(`Connecting to '${ma}' failed - ${err.message}`)
-    }
-  }
-}
-
-window.send.onclick = async () => {
-  if (chatStream == null) {
-    appendOutput('Opening chat stream')
-
-    const signal = AbortSignal.timeout(5000)
-
-    try {
-      const stream = await node.dialProtocol(ma, CHAT_PROTOCOL, {
-        signal
-      })
-      chatStream = byteStream(stream)
-
-      Promise.resolve().then(async () => {
-        while (true) {
-          const buf = await chatStream.read()
-          appendOutput(`Received message '${toString(buf.subarray())}'`)
-        }
-      })
-    } catch (err) {
-      if (signal.aborted) {
-        appendOutput('Timed out opening chat stream')
-      } else {
-        appendOutput(`Opening chat stream failed - ${err.message}`)
-      }
-
-      return
-    }
-  }
-
-  const message = window.message.value.toString().trim()
-  appendOutput(`Sending message '${message}'`)
-  chatStream.write(fromString(message))
-    .catch(err => {
-      appendOutput(`Error sending message - ${err.message}`)
-    })
-}
 
 // connect to relay
 const relay = '/dns4/194-11-226-35.k51qzi5uqu5dhlxz4gos5ph4wivip9rgsg6tywpypccb403b0st1nvzhw8as9q.libp2p.direct/tcp/4001/tls/ws/p2p/12D3KooWDfnXqdZfsoqKbcYEDKRttt3adumB5m6tw8YghPwMAz8V'
