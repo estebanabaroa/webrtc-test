@@ -11,7 +11,7 @@ import { byteStream } from 'it-byte-stream'
 import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 
-document.title = 'v8'
+document.title = 'v9'
 
 // only use webrtc over wss addresses
 const isValidAddress = (address) => address.includes('/webrtc/') && address.includes('/ws/') && address.includes('/dns')
@@ -225,7 +225,7 @@ const doPeerDiscovery = async () => {
       .map(ma => ma.toString())
       .filter(isValidAddress)
     if (!myAddresses.length) {
-      throw Error(`I don't have any addresses`)
+      throw Error(`don't have any addresses`)
     }
 
     const body = JSON.stringify({Providers: [{
@@ -240,11 +240,18 @@ const doPeerDiscovery = async () => {
         Addrs: myAddresses
       }
     }]})
-    const res = await fetch('https://peers.pleb.bot/routing/v1/providers/', {method: 'PUT', body}).then(res => res.txt())
-    console.log(res)
+    const res = await fetch('https://peers.pleb.bot/routing/v1/providers/', {method: 'PUT', body})
+    console.log('announced', res)
   }
   catch (e) {
     console.log(e)
     appendOutput(`Error announcing: ${e.message}`)
   }
+
+  // connect to peers
+  peersDiscovered.forEach(address => {
+    console.log('dialing', address)
+    node.dial(multiaddr(address))
+      .catch(console.log)
+  })
 }
