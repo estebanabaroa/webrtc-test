@@ -11,7 +11,7 @@ import { byteStream } from 'it-byte-stream'
 import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 
-document.title = 'v3'
+document.title = 'v4'
 
 const WEBRTC_CODE = protocols('webrtc').code
 
@@ -84,9 +84,9 @@ node.addEventListener('connection:close', (event) => {
 })
 
 node.addEventListener('self:peer:update', (event) => {
-  // Update multiaddrs list, only show WebRTC addresses
+  // Update multiaddrs list, only show WebRTC addresses with websocket relays
   const multiaddrs = node.getMultiaddrs()
-    .filter(ma => isWebrtc(ma))
+    .filter(ma => ma.toString().includes('/webrtc/') && ma.toString().includes('/ws/'))
     .map((ma) => {
       const el = document.createElement('li')
       el.textContent = ma.toString()
@@ -176,3 +176,4 @@ window.send.onclick = async () => {
 // connect to relay
 const relay = '/dns4/194-11-226-35.k51qzi5uqu5dhlxz4gos5ph4wivip9rgsg6tywpypccb403b0st1nvzhw8as9q.libp2p.direct/tcp/4001/tls/ws/p2p/12D3KooWDfnXqdZfsoqKbcYEDKRttt3adumB5m6tw8YghPwMAz8V'
 await node.dial(multiaddr(relay))
+appendOutput(`Connected to relay '${relay}'`)
