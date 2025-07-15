@@ -11,7 +11,7 @@ import { byteStream } from 'it-byte-stream'
 import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 
-document.title = 'v10'
+document.title = 'v11'
 
 // only use webrtc over wss addresses
 const isValidAddress = (address) => address.includes('/webrtc/') && address.includes('/ws/') && address.includes('/dns')
@@ -31,22 +31,14 @@ const node = await createLibp2p({
     ]
   },
   transports: [
-    webSockets({
-      filter: filters.all
-    }),
+    webSockets(),
     webRTC(),
     circuitRelayTransport()
   ],
   connectionEncrypters: [noise()],
   streamMuxers: [yamux()],
   connectionGater: {
-    denyDialMultiaddr: () => {
-      // by default we refuse to dial local addresses from the browser since they
-      // are usually sent by remote peers broadcasting undialable multiaddrs but
-      // here we are explicitly connecting to a local node so do not deny dialing
-      // any discovered address
-      return false
-    }
+    denyDialMultiaddr: () => false
   },
   services: {
     identify: identify(),
