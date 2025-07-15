@@ -11,7 +11,7 @@ import { byteStream } from 'it-byte-stream'
 import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 
-document.title = 'v5'
+document.title = 'v6'
 
 const WEBRTC_CODE = protocols('webrtc').code
 
@@ -97,6 +97,8 @@ node.addEventListener('self:peer:update', (event) => {
       return el
     })
   document.getElementById('multiaddrs').replaceChildren(...multiaddrs)
+
+  doPeerDiscovery()
 })
 
 node.handle(CHAT_PROTOCOL, async ({ stream }) => {
@@ -184,5 +186,62 @@ try {
   appendOutput(`Connected to relay '${relay}'`)
 }
 catch (e) {
-  appendOutput(`Error connecting to relay:`, e.message)
+  console.log(e)
+  appendOutput(`Error connecting to relay: ${e.message}`)
+}
+
+// do peer discovery, announce and get peers
+let peersDiscovered = []
+const doPeerDiscovery = async () => {
+  const routingCid = 'webrtctestaaaaaaaabbbbbbbbccccccccdddddddd'
+  // discover peers
+  try {
+    const {Providers} = await fetch(`https://peers.pleb.bot/routing/v1/providers/${routingCid}`).then(res => res.json())
+    const addresses = []
+    for (const provider of Providers) {
+      if (!provider.ID) {
+        continue
+      }
+      for (const address of provider.Addrs) {
+        if (address.includes('/webrtc/') && address.includes('/ws/')) {
+          addresses.push(`${address}/p2p/${provider.ID}`)
+        }
+      }
+    }
+    peersDiscovered = addresses
+    console.log({peersDiscovered})
+  }
+  catch (e) {
+    console.log(e)
+    appendOutput(`Error discovering peers: ${e.message}`)
+  }
+
+  // announce
+  try {
+    const myAddresses = node.getMultiaddrs()
+      .map(ma => ma.toString())
+      .filter(ma => ma.includes('/webrtc/') && ma.includes('/ws/'))
+    if (!myAddresses.length) {
+      throw Error(`I don't have any addresses`)
+    }
+
+    const body = {Providers: [{
+      Schema: 'bitswap',
+      Protocol: 'transport-bitswap',
+      Signature: 'mx5kamm5kzxuCnVJtX3K9DEj8gKlFqXil2x/M8zDTozvzowTY6W+HOALQ2LCkTZCEz4H5qizpnHxPM/rVQ7MNBg',
+      Payload: {
+        Keys: [routingCid],
+        Timestamp: Date.now(),
+        AdvisoryTTL: 86400000000000,
+        ID: node.peerId.toString(),
+        Addrs: myAddresses
+      }
+    }]}
+    const res = await fetch('https://peers.pleb.bot/routing/v1/providers/', {method: 'PUT', body}).then(res => res.txt())
+    console.log(res)
+  }
+  catch (e) {
+    console.log(e)
+    appendOutput(`Error announcing: ${e.message}`)
+  }
 }
