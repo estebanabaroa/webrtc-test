@@ -11,7 +11,7 @@ import { byteStream } from 'it-byte-stream'
 import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 
-document.title = 'v4'
+document.title = 'v5'
 
 const WEBRTC_CODE = protocols('webrtc').code
 
