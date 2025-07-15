@@ -11,7 +11,7 @@ import { byteStream } from 'it-byte-stream'
 import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 
-document.title = 'v7'
+document.title = 'v8'
 
 // only use webrtc over wss addresses
 const isValidAddress = (address) => address.includes('/webrtc/') && address.includes('/ws/') && address.includes('/dns')
@@ -196,7 +196,7 @@ catch (e) {
 // do peer discovery, announce and get peers
 let peersDiscovered = []
 const doPeerDiscovery = async () => {
-  const routingCid = 'webrtctestaaaaaaaabbbbbbbbccccccccdddddddd'
+  const routingCid = 'bafybeigmddlmc235fgegsdagzfbutnqjo2kxamyfrpfziaxrsc6ptb5fnm'
   // discover peers
   try {
     const {Providers} = await fetch(`https://peers.pleb.bot/routing/v1/providers/${routingCid}`).then(res => res.json())
@@ -228,7 +228,7 @@ const doPeerDiscovery = async () => {
       throw Error(`I don't have any addresses`)
     }
 
-    const body = {Providers: [{
+    const body = JSON.stringify({Providers: [{
       Schema: 'bitswap',
       Protocol: 'transport-bitswap',
       Signature: 'mx5kamm5kzxuCnVJtX3K9DEj8gKlFqXil2x/M8zDTozvzowTY6W+HOALQ2LCkTZCEz4H5qizpnHxPM/rVQ7MNBg',
@@ -239,7 +239,7 @@ const doPeerDiscovery = async () => {
         ID: node.peerId.toString(),
         Addrs: myAddresses
       }
-    }]}
+    }]})
     const res = await fetch('https://peers.pleb.bot/routing/v1/providers/', {method: 'PUT', body}).then(res => res.txt())
     console.log(res)
   }
