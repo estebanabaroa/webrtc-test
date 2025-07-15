@@ -37,9 +37,7 @@ const node = await createLibp2p({
   ],
   connectionEncrypters: [noise()],
   streamMuxers: [yamux()],
-  connectionGater: {
-    denyDialMultiaddr: () => false
-  },
+  connectionGater: {denyDialMultiaddr: () => false},
   services: {
     identify: identify(),
     identifyPush: identifyPush(),
@@ -67,7 +65,6 @@ node.addEventListener('connection:close', (event) => {
 })
 
 node.addEventListener('self:peer:update', (event) => {
-  // debug own addresses
   console.log(node.getMultiaddrs().map(ma => ma.toString()))
 
   // Update multiaddrs list, only show WebRTC addresses with websocket relays
