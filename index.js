@@ -84,12 +84,16 @@ node.addEventListener('connection:close', (event) => {
 })
 
 node.addEventListener('self:peer:update', (event) => {
+  // debug addresses
+  console.log(node.getMultiaddrs().map(ma => ma.toString()))
+
   // Update multiaddrs list, only show WebRTC addresses with websocket relays
   const multiaddrs = node.getMultiaddrs()
-    .filter(ma => ma.toString().includes('/webrtc/') && ma.toString().includes('/ws/'))
+    .map(ma => ma.toString())
+    .filter(ma => ma.includes('/webrtc/') && ma.includes('/ws/'))
     .map((ma) => {
       const el = document.createElement('li')
-      el.textContent = ma.toString()
+      el.textContent = ma
       return el
     })
   document.getElementById('multiaddrs').replaceChildren(...multiaddrs)
@@ -175,5 +179,10 @@ window.send.onclick = async () => {
 
 // connect to relay
 const relay = '/dns4/194-11-226-35.k51qzi5uqu5dhlxz4gos5ph4wivip9rgsg6tywpypccb403b0st1nvzhw8as9q.libp2p.direct/tcp/4001/tls/ws/p2p/12D3KooWDfnXqdZfsoqKbcYEDKRttt3adumB5m6tw8YghPwMAz8V'
-await node.dial(multiaddr(relay))
-appendOutput(`Connected to relay '${relay}'`)
+try {
+  await node.dial(multiaddr(relay))
+  appendOutput(`Connected to relay '${relay}'`)
+}
+catch (e) {
+  appendOutput(`Error connecting to relay:`, e.message)
+}
