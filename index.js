@@ -12,7 +12,7 @@ import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 
-document.title = 'v13'
+document.title = 'v14'
 
 // only use webrtc over wss addresses
 const isValidAddress = (address) => address.includes('/webrtc/') && address.includes('/ws/') && address.includes('/dns')
@@ -108,7 +108,7 @@ catch (e) {
 // do peer discovery, announce and get peers
 let peersDiscovered = []
 const doPeerDiscovery = async () => {
-  const routingCid = 'bafybeigmddlmc235fgegsdagzfbutnqjo2kxamyfrpfziaxrsc6ptb5fnm'
+  const routingCid = 'bafybeigmddlmc235fgegsdagzfcutnqjo2kxamyfrpfziaxrsc6ptb5fnm'
   // discover peers
   try {
     const {Providers} = await fetch(`https://peers.pleb.bot/routing/v1/providers/${routingCid}`).then(res => res.json())
