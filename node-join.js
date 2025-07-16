@@ -12,13 +12,17 @@ import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 
-document.title = 'v17'
-
-const logHtml = (line) => {
-  const div = document.createElement('div')
-  div.appendChild(document.createTextNode(line))
-  document.getElementById('output').append(div)
+// fix libp2p error
+try {
+  if (typeof Promise.withResolvers !== 'function') {
+    Promise.withResolvers = function () {
+      let resolve, reject
+      const promise = new Promise((res, rej) => {resolve = res; reject = rej})
+      return {promise, resolve, reject}
+    }
+  }
 }
+catch (e) {}
 
 const node = await createLibp2p({
   addresses: {
@@ -46,7 +50,7 @@ await node.start()
 // pubsub sub
 const pubsubTopic = 'demo'
 node.services.pubsub.addEventListener('message', (evt) => {
-  logHtml(`${evt.detail.from}: ${new TextDecoder().decode(evt.detail.data)} on topic ${evt.detail.topic}`)
+  console.log(`${evt.detail.from}: ${new TextDecoder().decode(evt.detail.data)} on topic ${evt.detail.topic}`)
 })
 await node.services.pubsub.subscribe(pubsubTopic)
 
@@ -55,11 +59,7 @@ setInterval(() => {
   node.services.pubsub.publish(pubsubTopic, new TextEncoder().encode(`demo message from browser ${node.peerId}`)).catch(console.error)
 }, 2000)
 
-const logConnections = () => document.getElementById('connections').replaceChildren(...node.getConnections().map((connection) => {
-  const el = document.createElement('li')
-  el.textContent = connection.remoteAddr.toString()
-  return el
-}))
+const logConnections = () => console.log('connections:', node.getConnections().map((connection) => connection.remoteAddr.toString()))
 node.addEventListener('connection:open', logConnections)
 node.addEventListener('connection:close', logConnections)
 
@@ -69,15 +69,7 @@ const isValidAddress = (address) => address.includes('/webrtc/') && address.incl
 // when own listen addresses change
 node.addEventListener('self:peer:update', (event) => {
   // log own listen addresses
-  console.log(node.getMultiaddrs().map(ma => ma.toString()))
-  document.getElementById('multiaddrs').replaceChildren(...node.getMultiaddrs()
-    .map(ma => ma.toString())
-    .filter(isValidAddress)
-    .map((ma) => {
-      const el = document.createElement('li')
-      el.textContent = ma
-      return el
-    }))
+  console.log('my listen addresses', node.getMultiaddrs().map(ma => ma.toString()).filter(isValidAddress))
 
   doPeerDiscovery()
 })
@@ -86,11 +78,11 @@ node.addEventListener('self:peer:update', (event) => {
 const relay = '/dns4/194-11-226-35.k51qzi5uqu5dhlxz4gos5ph4wivip9rgsg6tywpypccb403b0st1nvzhw8as9q.libp2p.direct/tcp/4001/tls/ws/p2p/12D3KooWDfnXqdZfsoqKbcYEDKRttt3adumB5m6tw8YghPwMAz8V'
 try {
   await node.dial(multiaddr(relay))
-  logHtml(`Connected to relay '${relay}'`)
+  console.log(`Connected to relay '${relay}'`)
 }
 catch (e) {
   console.log(e)
-  logHtml(`Error connecting to relay: ${e.message}`)
+  console.log(`Error connecting to relay: ${e.message}`)
 }
 
 // do peer discovery with plebbit trackers, announce and get peers
@@ -117,7 +109,7 @@ const doPeerDiscovery = async () => {
   }
   catch (e) {
     console.log(e)
-    logHtml(`Error discovering peers: ${e.message}`)
+    console.log(`Error discovering peers: ${e.message}`)
   }
 
   // announce
@@ -146,7 +138,7 @@ const doPeerDiscovery = async () => {
   }
   catch (e) {
     console.log(e)
-    logHtml(`Error announcing: ${e.message}`)
+    console.log(`Error announcing: ${e.message}`)
   }
 
   // connect to peers
