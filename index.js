@@ -12,16 +12,12 @@ import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 
-document.title = 'v14'
+document.title = 'v15'
 
-// only use webrtc over wss addresses
-const isValidAddress = (address) => address.includes('/webrtc/') && address.includes('/ws/') && address.includes('/dns')
-
-const output = document.getElementById('output')
-const appendOutput = (line) => {
+const logHtml = (line) => {
   const div = document.createElement('div')
   div.appendChild(document.createTextNode(line))
-  output.append(div)
+  document.getElementById('output').append(div)
 }
 
 const node = await createLibp2p({
@@ -42,13 +38,25 @@ const node = await createLibp2p({
   services: {
     identify: identify(),
     identifyPush: identifyPush(),
-  pubsub: gossipsub({allowPublishToZeroPeers: true})
+    pubsub: gossipsub({allowPublishToZeroPeers: true})
   }
 })
-
 await node.start()
 
-function updateConnList () {
+// pubsub sub
+const pubsubTopic = 'demo'
+node.services.pubsub.addEventListener('message', (evt) => {
+  logHtml(`${evt.detail.from}: ${new TextDecoder().decode(evt.detail.data)} on topic ${evt.detail.topic}`)
+})
+await node.services.pubsub.subscribe(pubsubTopic)
+
+// pubsub pub
+setInterval(() => {
+  node.services.pubsub.publish(pubsubTopic, new TextEncoder().encode(`demo message from browser ${node.peerId}`)).catch(console.error)
+}, 2000)
+
+// log connections
+const updateConnections = () => {
   const connListEls = node.getConnections()
     .map((connection) => {
       const el = document.createElement('li')
@@ -57,14 +65,13 @@ function updateConnList () {
     })
   document.getElementById('connections').replaceChildren(...connListEls)
 }
+node.addEventListener('connection:open', updateConnList)
+node.addEventListener('connection:close', updateConnList)
 
-node.addEventListener('connection:open', (event) => {
-  updateConnList()
-})
-node.addEventListener('connection:close', (event) => {
-  updateConnList()
-})
+// only use webrtc addresses with relay over websocket
+const isValidAddress = (address) => address.includes('/webrtc/') && address.includes('/ws/') && address.includes('/dns')
 
+// log own listen addresses
 node.addEventListener('self:peer:update', (event) => {
   console.log(node.getMultiaddrs().map(ma => ma.toString()))
 
@@ -82,33 +89,22 @@ node.addEventListener('self:peer:update', (event) => {
   doPeerDiscovery()
 })
 
-// pubsub sub
-const pubsubTopic = 'demo'
-node.services.pubsub.addEventListener('message', (evt) => {
-  appendOutput(`${evt.detail.from}: ${new TextDecoder().decode(evt.detail.data)} on topic ${evt.detail.topic}`)
-})
-await node.services.pubsub.subscribe(pubsubTopic)
-
-// pubsub pub
-setInterval(() => {
-  node.services.pubsub.publish(pubsubTopic, new TextEncoder().encode(`demo message from browser ${node.peerId}`)).catch(console.error)
-}, 2000)
-
 // connect to relay
 const relay = '/dns4/194-11-226-35.k51qzi5uqu5dhlxz4gos5ph4wivip9rgsg6tywpypccb403b0st1nvzhw8as9q.libp2p.direct/tcp/4001/tls/ws/p2p/12D3KooWDfnXqdZfsoqKbcYEDKRttt3adumB5m6tw8YghPwMAz8V'
 try {
   await node.dial(multiaddr(relay))
-  appendOutput(`Connected to relay '${relay}'`)
+  logHtml(`Connected to relay '${relay}'`)
 }
 catch (e) {
   console.log(e)
-  appendOutput(`Error connecting to relay: ${e.message}`)
+  logHtml(`Error connecting to relay: ${e.message}`)
 }
 
-// do peer discovery, announce and get peers
+// do peer discovery with plebbit trackers, announce and get peers
 let peersDiscovered = []
 const doPeerDiscovery = async () => {
   const routingCid = 'bafybeigmddlmc235fgegsdagzfcutnqjo2kxamyfrpfziaxrsc6ptb5fnm'
+
   // discover peers
   try {
     const {Providers} = await fetch(`https://peers.pleb.bot/routing/v1/providers/${routingCid}`).then(res => res.json())
@@ -128,7 +124,7 @@ const doPeerDiscovery = async () => {
   }
   catch (e) {
     console.log(e)
-    appendOutput(`Error discovering peers: ${e.message}`)
+    logHtml(`Error discovering peers: ${e.message}`)
   }
 
   // announce
@@ -157,7 +153,7 @@ const doPeerDiscovery = async () => {
   }
   catch (e) {
     console.log(e)
-    appendOutput(`Error announcing: ${e.message}`)
+    logHtml(`Error announcing: ${e.message}`)
   }
 
   // connect to peers
