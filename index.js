@@ -10,8 +10,9 @@ import { multiaddr, protocols } from '@multiformats/multiaddr'
 import { byteStream } from 'it-byte-stream'
 import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
+import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 
-document.title = 'v11'
+document.title = 'v12'
 
 // only use webrtc over wss addresses
 const isValidAddress = (address) => address.includes('/webrtc/') && address.includes('/ws/') && address.includes('/dns')
@@ -41,7 +42,7 @@ const node = await createLibp2p({
   services: {
     identify: identify(),
     identifyPush: identifyPush(),
-    ping: ping()
+  pubsub: gossipsub({allowPublishToZeroPeers: true})
   }
 })
 
@@ -80,6 +81,18 @@ node.addEventListener('self:peer:update', (event) => {
 
   doPeerDiscovery()
 })
+
+// pubsub sub
+const pubsubTopic = 'demo'
+node.services.pubsub.addEventListener('message', (evt) => {
+  appendOutput(`${evt.detail.from}: ${new TextDecoder().decode(evt.detail.data)} on topic ${evt.detail.topic}`)
+})
+await node.services.pubsub.subscribe(pubsubTopic)
+
+// pubsub pub
+setInterval(() => {
+  node.services.pubsub.publish(pubsubTopic, new TextEncoder().encode(`demo message from browser ${node.peerId}`)).catch(console.error)
+}, 2000)
 
 // connect to relay
 const relay = '/dns4/194-11-226-35.k51qzi5uqu5dhlxz4gos5ph4wivip9rgsg6tywpypccb403b0st1nvzhw8as9q.libp2p.direct/tcp/4001/tls/ws/p2p/12D3KooWDfnXqdZfsoqKbcYEDKRttt3adumB5m6tw8YghPwMAz8V'
