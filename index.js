@@ -28,9 +28,9 @@ const node = await createLibp2p({
     ]
   },
   transports: [
-    webSockets(),
+    webSockets(), // needed to connect to relay
     webRTC(),
-    circuitRelayTransport()
+    circuitRelayTransport() // needed to listen with webrtc using the relay
   ],
   connectionEncrypters: [noise()],
   streamMuxers: [yamux()],
