@@ -12,7 +12,7 @@ import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 
-document.title = 'v15'
+document.title = 'v16'
 
 const logHtml = (line) => {
   const div = document.createElement('div')
@@ -55,41 +55,34 @@ setInterval(() => {
   node.services.pubsub.publish(pubsubTopic, new TextEncoder().encode(`demo message from browser ${node.peerId}`)).catch(console.error)
 }, 2000)
 
-// log connections
-const updateConnections = () => {
-  const connListEls = node.getConnections()
-    .map((connection) => {
-      const el = document.createElement('li')
-      el.textContent = connection.remoteAddr.toString()
-      return el
-    })
-  document.getElementById('connections').replaceChildren(...connListEls)
-}
-node.addEventListener('connection:open', updateConnList)
-node.addEventListener('connection:close', updateConnList)
+const logConnections = () => document.getElementById('connections').replaceChildren(...node.getConnections().map((connection) => {
+  const el = document.createElement('li')
+  el.textContent = connection.remoteAddr.toString()
+  return el
+}))
+node.addEventListener('connection:open', logConnections)
+node.addEventListener('connection:close', logConnections)
 
 // only use webrtc addresses with relay over websocket
 const isValidAddress = (address) => address.includes('/webrtc/') && address.includes('/ws/') && address.includes('/dns')
 
-// log own listen addresses
+// when own listen addresses change
 node.addEventListener('self:peer:update', (event) => {
+  // log own listen addresses
   console.log(node.getMultiaddrs().map(ma => ma.toString()))
-
-  // Update multiaddrs list, only show WebRTC addresses with websocket relays
-  const multiaddrs = node.getMultiaddrs()
+  document.getElementById('multiaddrs').replaceChildren(...node.getMultiaddrs()
     .map(ma => ma.toString())
     .filter(isValidAddress)
     .map((ma) => {
       const el = document.createElement('li')
       el.textContent = ma
       return el
-    })
-  document.getElementById('multiaddrs').replaceChildren(...multiaddrs)
+    }))
 
   doPeerDiscovery()
 })
 
-// connect to relay
+// connect to relay (any kubo node with auto tls)
 const relay = '/dns4/194-11-226-35.k51qzi5uqu5dhlxz4gos5ph4wivip9rgsg6tywpypccb403b0st1nvzhw8as9q.libp2p.direct/tcp/4001/tls/ws/p2p/12D3KooWDfnXqdZfsoqKbcYEDKRttt3adumB5m6tw8YghPwMAz8V'
 try {
   await node.dial(multiaddr(relay))
