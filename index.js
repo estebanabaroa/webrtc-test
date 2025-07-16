@@ -12,7 +12,7 @@ import { createLibp2p } from 'libp2p'
 import { fromString, toString } from 'uint8arrays'
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 
-document.title = 'v12'
+document.title = 'v13'
 
 // only use webrtc over wss addresses
 const isValidAddress = (address) => address.includes('/webrtc/') && address.includes('/ws/') && address.includes('/dns')
@@ -119,7 +119,7 @@ const doPeerDiscovery = async () => {
       }
       for (const address of provider.Addrs) {
         if (isValidAddress(address)) {
-          addresses.push(`${address}/p2p/${provider.ID}`)
+          addresses.push(address)
         }
       }
     }
